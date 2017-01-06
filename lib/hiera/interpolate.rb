@@ -23,7 +23,8 @@ class Hiera::Interpolate
     'hiera' => :hiera_interpolate,
     'scope' => :scope_interpolate,
     'literal' => :literal_interpolate,
-    'alias' => :alias_interpolate
+    'alias' => :alias_interpolate,
+    'trim' => :trim_interpolate
   }.freeze
 
   class << self
@@ -117,5 +118,21 @@ class Hiera::Interpolate
       Hiera::Backend.lookup(key, nil, scope, context[:order_override], :priority, context)
     end
     private :alias_interpolate
+
+    def trim_interpolate(data, key, scope, extra_data, context)
+      parts = key.split('|')
+      parts[1] = '0:-1' unless parts.size > 1
+      parts[2] = '.' unless parts.size > 2
+      if scope.has_key?(parts[0])
+        rng = parts[1].split(':')
+        start = ( rng[0].empty? ? 0 : rng[0].to_i )
+        fin = start if parts[1].index(':').nil?
+        fin = ( rng[1].nil? ? -1 : rng[1].to_i ) unless parts[1].index(':').nil?
+        scope[parts[0]].split(parts[2])[start..fin].join(parts[2])
+      else
+        nil
+      end
+    end
+    private :trim_interpolate
   end
 end
